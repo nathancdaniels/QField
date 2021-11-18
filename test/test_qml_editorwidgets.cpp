@@ -30,13 +30,13 @@ class Setup : public QObject
   public:
     Setup()
     {
-      qDebug() << "Starting";
+      qInfo() << "Starting";
     }
 
   public slots:
     void qmlEngineAvailable( QQmlEngine *engine )
     {
-      qDebug() << "Initializing";
+      qInfo() << "Initializing";
       qmlInit( engine );
     }
 };
