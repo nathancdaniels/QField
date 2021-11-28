@@ -296,7 +296,7 @@ jobs:
           path: ${{ steps.vars.outputs.BUILD_ROOT }}/builddir/_CPack_Packages/**/*.log
 
       - name: 📦 Upload package
-        if: always() || ${{ env.ARTIFACT_NAME != null }}
+        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: "QField-dev-${{ matrix.triplet }}-${{ steps.vars.outputs.BUILD_TYPE }}"
