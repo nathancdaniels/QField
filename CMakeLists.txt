@@ -1,10 +1,6 @@
 #############################################################
 # CMake settings
 cmake_minimum_required(VERSION 3.15)
-cmake_policy(SET CMP0071 NEW)
-cmake_policy(SET CMP0074 NEW)
-cmake_policy(SET CMP0077 NEW)
-cmake_policy(SET CMP0087 NEW)
 
 set(QML_IMPORT_PATH ${CMAKE_SOURCE_DIR}/src/qml/imports CACHE PATH "QML import path for Qt Creator to detect custom modules properly")
 
@@ -121,7 +117,11 @@ find_package(Qt5 COMPONENTS PrintSupport QUIET)
 
 find_package(QGIS REQUIRED)
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+if(WITH_VCPKG)
   find_package(PROJ)
+else()
+  find_package(Proj)
+endif()
   find_package(GDAL)
 endif()
 find_package(Qca REQUIRED)

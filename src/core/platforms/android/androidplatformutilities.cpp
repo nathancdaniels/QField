@@ -23,8 +23,8 @@
 #include "appinterface.h"
 #include "feedback.h"
 #include "fileutils.h"
-#include "qfield_android.h"
 #include "qfield.h"
+#include "qfield_android.h"
 
 #include <QAndroidJniEnvironment>
 #include <QApplication>
@@ -39,12 +39,12 @@
 #include <QThread>
 #include <QtAndroid>
 
-#include <jni.h>
 #include <android/log.h>
+#include <jni.h>
 const char *const applicationName = "QField";
 
-#define GLUE_HELPER(u, v, w, x, y, z) u##v##w##x##y##z
-#define JNI_FUNCTION_NAME(class_name, function_name) GLUE_HELPER(Java_ch_opengis_, APP_PACKAGE_NAME, _, class_name, _, function_name)
+#define GLUE_HELPER( u, v, w, x, y, z ) u##v##w##x##y##z
+#define JNI_FUNCTION_NAME( class_name, function_name ) GLUE_HELPER( Java_ch_opengis_, APP_PACKAGE_NAME, _, class_name, _, function_name )
 
 AndroidPlatformUtilities::AndroidPlatformUtilities()
   : mActivity( QtAndroid::androidActivity() )
@@ -93,8 +93,8 @@ void AndroidPlatformUtilities::initSystem()
 
   {
     qDebug() << QStringLiteral( "Different build git revision detected (previous: %1, current: %2)" )
-             .arg( localGitRev.size() > 0 ? localGitRev.mid( 0, 7 ) : QStringLiteral( "n/a" ) )
-             .arg( appGitRev.size() > 0 ? appGitRev.mid( 0, 7 ) : QStringLiteral( "n/a" ) );
+                .arg( localGitRev.size() > 0 ? localGitRev.mid( 0, 7 ) : QStringLiteral( "n/a" ) )
+                .arg( appGitRev.size() > 0 ? appGitRev.mid( 0, 7 ) : QStringLiteral( "n/a" ) );
     int argc = 0;
     QApplication app( argc, nullptr );
     QQmlApplicationEngine engine;
@@ -103,8 +103,7 @@ void AndroidPlatformUtilities::initSystem()
     engine.rootContext()->setContextProperty( "feedback", &feedback );
     engine.load( QUrl( QStringLiteral( "qrc:/qml/SystemLoader.qml" ) ) );
 
-    QMetaObject::invokeMethod( &app, [this, &app, &feedback ]
-    {
+    QMetaObject::invokeMethod( &app, [this, &app, &feedback] {
       FileCopyThread *thread = new FileCopyThread( QStringLiteral( "assets:/share" ), mSystemGenericDataLocation, &feedback );
       app.connect( thread, &QThread::finished, &app, QApplication::quit );
       app.connect( thread, &QThread::finished, thread, &QThread::deleteLater );
@@ -253,7 +252,7 @@ PictureSource *AndroidPlatformUtilities::getGalleryPicture( QQuickItem *parent, 
   return pictureSource;
 }
 
-ViewStatus *AndroidPlatformUtilities::open( const QString &uri )
+ViewStatus *AndroidPlatformUtilities::open( const QString &uri, bool editing )
 {
   checkWriteExternalStoragePermissions();
 
@@ -268,9 +267,12 @@ ViewStatus *AndroidPlatformUtilities::open( const QString &uri )
   QAndroidJniObject filepath = QAndroidJniObject::fromString( uri );
   QAndroidJniObject filetype_label = QAndroidJniObject::fromString( "filetype" );
   QAndroidJniObject filetype = QAndroidJniObject::fromString( db.mimeTypeForFile( uri ).name() );
+  QAndroidJniObject fileediting_label = QAndroidJniObject::fromString( "fileediting" );
+  QAndroidJniObject fileediting = QAndroidJniObject::fromString( editing ? "true" : "false" );
 
   intent.callObjectMethod( "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", filepath_label.object<jstring>(), filepath.object<jstring>() );
   intent.callObjectMethod( "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", filetype_label.object<jstring>(), filetype.object<jstring>() );
+  intent.callObjectMethod( "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", fileediting_label.object<jstring>(), fileediting.object<jstring>() );
 
   AndroidViewStatus *viewStatus = new AndroidViewStatus();
   QtAndroid::startActivity( intent.object<jobject>(), 102, viewStatus );
@@ -346,8 +348,7 @@ void AndroidPlatformUtilities::setScreenLockPermission( const bool allowLock )
 {
   if ( mActivity.isValid() )
   {
-    QtAndroid::runOnAndroidThread( [allowLock]
-    {
+    QtAndroid::runOnAndroidThread( [allowLock] {
       QAndroidJniObject activity = QtAndroid::androidActivity();
       if ( activity.isValid() )
       {
@@ -380,8 +381,7 @@ void AndroidPlatformUtilities::dimBrightness()
 {
   if ( mActivity.isValid() )
   {
-    QtAndroid::runOnAndroidThread( []
-    {
+    QtAndroid::runOnAndroidThread( [] {
       QAndroidJniObject activity = QtAndroid::androidActivity();
       if ( activity.isValid() )
       {
@@ -395,8 +395,7 @@ void AndroidPlatformUtilities::restoreBrightness()
 {
   if ( mActivity.isValid() )
   {
-    QtAndroid::runOnAndroidThread( []
-    {
+    QtAndroid::runOnAndroidThread( [] {
       QAndroidJniObject activity = QtAndroid::androidActivity();
       if ( activity.isValid() )
       {
@@ -408,7 +407,6 @@ void AndroidPlatformUtilities::restoreBrightness()
 
 void AndroidPlatformUtilities::showRateThisApp() const
 {
-
   QAndroidJniObject activity = QAndroidJniObject::fromString( QStringLiteral( "ch.opengis." APP_PACKAGE_NAME ".QFieldAppRaterActivity" ) );
   QAndroidJniObject intent = QAndroidJniObject( "android/content/Intent", "(Ljava/lang/String;)V", activity.object<jstring>() );
 

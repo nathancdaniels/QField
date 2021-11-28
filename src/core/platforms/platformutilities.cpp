@@ -16,9 +16,9 @@
  *                                                                         *
  ***************************************************************************/
 
+#include "picturesource.h"
 #include "platformutilities.h"
 #include "projectsource.h"
-#include "picturesource.h"
 #include "qgismobileapp.h"
 #include "qgsmessagelog.h"
 
@@ -131,7 +131,7 @@ PictureSource *PlatformUtilities::getGalleryPicture( QQuickItem *parent, const Q
   return new PictureSource( nullptr, prefix, QString() );
 }
 
-ViewStatus *PlatformUtilities::open( const QString &uri )
+ViewStatus *PlatformUtilities::open( const QString &uri, bool )
 {
   QDesktopServices::openUrl( QStringLiteral( "file://%1" ).arg( uri ) );
   return nullptr;
@@ -142,9 +142,9 @@ ProjectSource *PlatformUtilities::openProject()
   QSettings settings;
   ProjectSource *source = new ProjectSource();
   QString fileName { QFileDialog::getOpenFileName( nullptr,
-                     tr( "Open File" ),
-                     settings.value( QStringLiteral( "QField/lastOpenDir" ), QString() ).toString(),
-                     QStringLiteral( "%1 (*.%2);;%3 (*.%4);;%5 (*.%6);;%7 (*.%8)" ).arg( tr( "All Supported Files" ), ( SUPPORTED_PROJECT_EXTENSIONS + SUPPORTED_VECTOR_EXTENSIONS + SUPPORTED_RASTER_EXTENSIONS ).join( QStringLiteral( " *." ) ), tr( "QGIS Project Files" ), SUPPORTED_PROJECT_EXTENSIONS.join( QStringLiteral( " *." ) ), tr( "Vector Datasets" ), SUPPORTED_VECTOR_EXTENSIONS.join( QStringLiteral( " *." ) ), tr( "Raster Datasets" ), SUPPORTED_RASTER_EXTENSIONS.join( QStringLiteral( " *." ) ) ) ) };
+                                                   tr( "Open File" ),
+                                                   settings.value( QStringLiteral( "QField/lastOpenDir" ), QString() ).toString(),
+                                                   QStringLiteral( "%1 (*.%2);;%3 (*.%4);;%5 (*.%6);;%7 (*.%8)" ).arg( tr( "All Supported Files" ), ( SUPPORTED_PROJECT_EXTENSIONS + SUPPORTED_VECTOR_EXTENSIONS + SUPPORTED_RASTER_EXTENSIONS ).join( QStringLiteral( " *." ) ), tr( "QGIS Project Files" ), SUPPORTED_PROJECT_EXTENSIONS.join( QStringLiteral( " *." ) ), tr( "Vector Datasets" ), SUPPORTED_VECTOR_EXTENSIONS.join( QStringLiteral( " *." ) ), tr( "Raster Datasets" ), SUPPORTED_RASTER_EXTENSIONS.join( QStringLiteral( " *." ) ) ) ) };
   if ( !fileName.isEmpty() )
   {
     settings.setValue( QStringLiteral( "/QField/lastOpenDir" ), QFileInfo( fileName ).absolutePath() );
@@ -172,4 +172,3 @@ PlatformUtilities *PlatformUtilities::instance()
 {
   return sPlatformUtils;
 }
-

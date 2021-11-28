@@ -59,8 +59,13 @@ if(ANDROID)
 else()
   add_executable(
     qfield
-    main.cpp ${RESOURCES} ${CMAKE_SOURCE_DIR}/images/images.qrc
-    ${CMAKE_SOURCE_DIR}/resources/resources.qrc ${ICON_SRC} ${TRANSLATIONS_QRC})
+    main.cpp
+    ${RESOURCES}
+    ${CMAKE_SOURCE_DIR}/images/images.qrc
+    ${CMAKE_BINARY_DIR}/images/logo.qrc
+    ${CMAKE_SOURCE_DIR}/resources/resources.qrc
+    ${ICON_SRC}
+    ${TRANSLATIONS_QRC})
 endif()
 
 target_compile_definitions(
@@ -110,11 +115,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
     VERSION "${APK_VERSION_CODE}"
     SHORT_VERSION "${APK_VERSION_CODE}"
     LONG_VERSION "${APK_VERSION_CODE}"
-    ASSET_DIR "${PROJECT_SOURCE_DIR}/ios/Assets.xcassets"
+    ASSET_DIR "${PROJECT_SOURCE_DIR}/platform/ios/Assets.xcassets"
     CATALOG_APPICON "AppIcon${QFIELD_APP_ICON_SUFFIX}"
-    LAUNCHSCREEN_STORYBOARD "${PROJECT_SOURCE_DIR}/ios/LaunchScreen.storyboard"
+    LAUNCHSCREEN_STORYBOARD
+      "${PROJECT_SOURCE_DIR}/platform/ios/LaunchScreen.storyboard"
     RESOURCE_FILES "${QFIELD_RESOURCE_FILES}"
-    CUSTOM_PLIST "${PROJECT_SOURCE_DIR}/ios/Info.plist.in"
+    CUSTOM_PLIST "${PROJECT_SOURCE_DIR}/platform/ios/Info.plist.in"
     BUNDLE_IDENTIFIER "ch.opengis.qfield"
     ORIENTATION_PORTRAIT
     ORIENTATION_PORTRAIT_UPDOWN
