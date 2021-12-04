@@ -63,7 +63,7 @@ jobs:
           echo "::set-output name=PATHCONVERT::echo"
           echo "::set-output name=INSTALL_QT::true"
           echo "::set-output name=QT_TARGET::android"
-          echo "::set-output name=BUILD_TYPE::Release"
+          echo "::set-output name=BUILD_TYPE::RelWithDebInfo"
           echo "::set-output name=BUILD_ROOT::${BUILD_ROOT}"
 
           echo "CMAKE_BUILD_DIR=${BUILD_ROOT}/builddir" >> $GITHUB_ENV
