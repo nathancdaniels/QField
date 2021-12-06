@@ -28,7 +28,18 @@ Item{
       name: "PhotoPreview"
     }
   ]
-
+    Video {
+        id: cam1Stream
+        x: 49
+        y: 91
+        width: 505
+        height: 336
+        source: "http://192.168.25.1:8080/?action=stream"
+        autoPlay: true
+        opacity: 1.0
+        fillMode: Image.Stretch
+        muted: false
+    }
   Camera {
     id: camera
 
@@ -39,7 +50,7 @@ Item{
         currentPath  = path
       }
       onImageCaptured: {
-        photoPreview.source = preview
+        photoPreview.source = cam1Stream
         cameraItem.state = "PhotoPreview"
       }
     }
