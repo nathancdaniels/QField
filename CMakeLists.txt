@@ -1,13 +1,12 @@
 #############################################################
 # CMake settings
-cmake_minimum_required(VERSION 3.5)
-cmake_policy(SET CMP0071 NEW)
-cmake_policy(SET CMP0074 NEW)
+cmake_minimum_required(VERSION 3.15)
 
 set(QML_IMPORT_PATH ${CMAKE_SOURCE_DIR}/src/qml/imports CACHE PATH "QML import path for Qt Creator to detect custom modules properly")
 
 set(CMAKE_COLOR_MAKEFILE ON)
 set(APP_NAME "QField" CACHE STRING "Application Name")
+set(APP_ICON "qfield_logo" CACHE STRING "Application Icon")
 set(APK_VERSION_CODE "1" CACHE STRING "Apk Version Code (Example: 1)")
 set(APP_VERSION "" CACHE STRING "Application Version (Example: 1.0.0)")
 set(APP_VERSION_STR "local - dev" CACHE STRING "Application Version Name (Example: 1.0.0 - Homerun)")
@@ -15,20 +14,22 @@ set(APP_PACKAGE_NAME "qfield" CACHE STRING "Package name suffix. E.g. qfield -->
 
 string(REGEX REPLACE "v" "" CLEAN_APP_VERSION "${APP_VERSION}")
 
-project(${APP_NAME}
-  LANGUAGES CXX
-  VERSION ${CLEAN_APP_VERSION}
-)
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 include(GetGitRevisionDescription)
+
+set(USE_MAC_BUNDLING ON) # Will be overwritten by the VcpkgToolchain for vcpkg builds
+include(VcpkgToolchain)
+
+
+project(${APP_NAME}
+  VERSION ${CLEAN_APP_VERSION}
+)
+
+
 GET_GIT_HEAD_REVISION(GIT_REFSPEC GIT_REV)
 
-add_definitions(-DAPP_NAME="${APP_NAME}")
-add_definitions(-DAPP_VERSION="${APP_VERSION}")
-add_definitions(-DAPP_VERSION_STR="${APP_VERSION_STR}")
-add_definitions(-DGIT_REV="${GIT_REV}")
+message(STATUS "Building for git rev ${GIT_REV}")
 
 set(DEFAULT_BIN_SUBDIR     bin)
 set(DEFAULT_CGIBIN_SUBDIR  bin)
@@ -39,10 +40,13 @@ set(QFIELD_BIN_SUBDIR     ${DEFAULT_BIN_SUBDIR}     CACHE STRING "Subdirectory w
 set(QFIELD_LIB_SUBDIR     ${DEFAULT_LIB_SUBDIR}     CACHE STRING "Subdirectory where libraries will be installed")
 set(QFIELD_INCLUDE_SUBDIR ${DEFAULT_INCLUDE_SUBDIR} CACHE STRING "Subdirectory where header files will be installed")
 
-set(WITH_VCPKG OFF CACHE BOOL "Build with vcpkg packaging layout")
-set(USE_MAC_BUNDLING NOT ${WITH_VCPKG} CACHE BOOL "Use mac bundling")
 
-mark_as_advanced (QFIELD_INCLUDE_SUBDIR QFIELD_BIN_SUBDIR QFIELD_LIB_SUBDIR WITH_VCPKG USE_MAC_BUNDLING)
+set(RELATIVE_PREFIX_PATH ${WITH_VCPKG} CACHE BOOL "Use a prefix path relative to the application itself rather than hard coding the path while compiling")
+if(RELATIVE_PREFIX_PATH)
+  add_definitions(-DRELATIVE_PREFIX_PATH)
+endif()
+
+mark_as_advanced (QFIELD_INCLUDE_SUBDIR QFIELD_BIN_SUBDIR QFIELD_LIB_SUBDIR)
 set(QFIELD_BIN_DIR ${QFIELD_BIN_SUBDIR})
 set(QFIELD_LIB_DIR ${QFIELD_LIB_SUBDIR})
 set(QFIELD_INCLUDE_DIR ${QFIELD_INCLUDE_SUBDIR})
@@ -59,7 +63,7 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QFIELD_OUTPUT_DIRECTORY}/${QFIELD_BIN_SUBDIR}/$<0:>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QFIELD_OUTPUT_DIRECTORY}/${QFIELD_LIB_SUBDIR}/$<0:>)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share/qfield)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources DESTINATION share/qfield)
 
 set(WITH_SPIX FALSE CACHE STRING "Compile with Spix for testing")
 
@@ -70,103 +74,35 @@ endif ()
 if (ANDROID)
   # This is necessary in order for CMake to be able to detect libraries in OSGeo4A
   list(APPEND CMAKE_FIND_ROOT_PATH /)
+  SET(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 
   add_definitions(-DQGIS_INSTALL_DIR="") # TODO: do we need osgeo4a/[lib]/files here? see qgis.pri
 
   # Android SDK stuff
   set(ANDROID_TARGET_PLATFORM CACHE INT "Target Android platform SDK version")
   set(ANDROID_PLATFORM 21 CACHE INT "Minimum Android platform SDK version")
-  set(ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/android)
+  set(ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_BINARY_DIR}/android-template)
 
-  # Paths relevant to OSGeo4A
-  set(OSGEO4A_STAGE_DIR NONE CACHE PATH "OSGeo4A stage path (base path without architecture)")
-  set(OSGEO4A_LIB_DIR ${OSGEO4A_STAGE_DIR}/${ANDROID_ABI}/lib)
-
-  # Extra libraries to be copied after building
-  list(APPEND ANDROID_EXTRA_LIBS
-    ${OSGEO4A_LIB_DIR}/libssl_1_1.so
-    ${OSGEO4A_LIB_DIR}/libcrypto_1_1.so
-    ${OSGEO4A_LIB_DIR}/libexpat.so
-    ${OSGEO4A_LIB_DIR}/libgeos.so
-    ${OSGEO4A_LIB_DIR}/libgeos_c.so
-    ${OSGEO4A_LIB_DIR}/libgslcblas.so
-    ${OSGEO4A_LIB_DIR}/libsqlite3.so
-    ${OSGEO4A_LIB_DIR}/libcharset.so
-    ${OSGEO4A_LIB_DIR}/libexiv2.so
-    ${OSGEO4A_LIB_DIR}/libiconv.so
-    ${OSGEO4A_LIB_DIR}/libopenjp2.so
-    ${OSGEO4A_LIB_DIR}/libfreexl.so
-    ${OSGEO4A_LIB_DIR}/libtiff.so
-    ${OSGEO4A_LIB_DIR}/libpng16.so
-    ${OSGEO4A_LIB_DIR}/libgdal.so
-    ${OSGEO4A_LIB_DIR}/libproj.so
-    ${OSGEO4A_LIB_DIR}/libspatialindex.so
-    ${OSGEO4A_LIB_DIR}/libpq.so
-    ${OSGEO4A_LIB_DIR}/libspatialite.so
-    ${OSGEO4A_LIB_DIR}/libgsl.so
-    ${OSGEO4A_LIB_DIR}/libgslcblas.so
-    ${OSGEO4A_LIB_DIR}/libqca-qt5_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libqgis_core_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libqgis_analysis_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libqgis_native_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libqt5keychain_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libzip.so
-    ${OSGEO4A_LIB_DIR}/libzstd.so
-    ${OSGEO4A_LIB_DIR}/libpoppler_${ANDROID_ABI}.so
-    ${OSGEO4A_LIB_DIR}/libfreetype.so
-  )
+  include(platform/android/openssl/CMakeLists.txt)
 
   find_package(Qt5 COMPONENTS AndroidExtras REQUIRED)
 
-  configure_file(cmake/generated.xml.in ${CMAKE_SOURCE_DIR}/android/res/values/generated.xml @ONLY)
-  configure_file(cmake/AndroidManifest.xml.in ${CMAKE_SOURCE_DIR}/android/AndroidManifest.xml @ONLY)
-
-  include(CreateZip)
-
-  file(GLOB PLUGINS_QGIS_PROVIDERS
-    ${OSGEO4A_LIB_DIR}/*provider*.so
-  )
-  file(GLOB PLUGINS_QGIS_AUTHMETHODS
-    ${OSGEO4A_LIB_DIR}/*authmethod*.so
-  )
-
   set(SHARE_PATH "${CMAKE_CURRENT_BINARY_DIR}/android-build/assets/share")
-  file(COPY ${PLUGINS_QGIS_PROVIDERS} DESTINATION "${SHARE_PATH}/plugins/")
-  file(COPY ${PLUGINS_QGIS_AUTHMETHODS} DESTINATION "${SHARE_PATH}/plugins/")
-  file(COPY "${OSGEO4A_LIB_DIR}/qca-qt5/crypto/" DESTINATION "${SHARE_PATH}/plugins/crypto/")
-  file(COPY "${OSGEO4A_STAGE_DIR}/${ANDROID_ABI}/share/proj/" DESTINATION "${SHARE_PATH}/proj/")
-  file(COPY "${OSGEO4A_STAGE_DIR}/${ANDROID_ABI}/files/share/svg/" DESTINATION "${SHARE_PATH}/qgis/svg/")
-  file(COPY "${OSGEO4A_STAGE_DIR}/${ANDROID_ABI}/files/share/resources/" DESTINATION "${SHARE_PATH}/qgis/resources/")
-
-  # Strip libs to save space
-  file(GLOB_RECURSE PLUGINS_LIBS
-    ${SHARE_PATH}/plugins/*.so
-  )
-  foreach(PLUGINS_LIB IN LISTS PLUGINS_LIBS)
-    if(ANDROID_ABI STREQUAL "x86")
-      EXECUTE_PROCESS(COMMAND "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-strip" "${PLUGINS_LIB}")
-    elseif(ANDROID_ABI STREQUAL "x86_64")
-      EXECUTE_PROCESS(COMMAND "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-strip" "${PLUGINS_LIB}")
-    elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
-      EXECUTE_PROCESS(COMMAND "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-android-strip" "${PLUGINS_LIB}")
-    elseif(ANDROID_ABI STREQUAL "arm64-v8a")
-      EXECUTE_PROCESS(COMMAND "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip" "${PLUGINS_LIB}")
-    endif()
-  endforeach()
+  file(COPY "${VCPKG_BASE_DIR}/share/proj4/" DESTINATION "${SHARE_PATH}/proj/")
+  file(MAKE_DIRECTORY "${SHARE_PATH}/qgis/")
+  file(COPY "${VCPKG_BASE_DIR}/files/share/svg/" DESTINATION "${SHARE_PATH}/qgis/svg/")
+  file(COPY "${VCPKG_BASE_DIR}/files/share/resources/" DESTINATION "${SHARE_PATH}/qgis/resources/")
 
   # Remove world map to keep apk size a bit smaller
   file(REMOVE "${SHARE_PATH}/qgis/resources/data/world_map.gpkg")
   file(COPY resources/ DESTINATION "${SHARE_PATH}/qfield/")
-
-  # We use GDAL in OSGeo4A instead
-  set(ENV{GDAL_ROOT} ${OSGEO4A_STAGE_DIR}/${ANDROID_ABI})
 
   # Don't do tests when building for Android
   set(ENABLE_TESTS FALSE)
 endif()
 
 set(QT_MIN_VERSION 5.14.0)
-find_package(Qt5 COMPONENTS Concurrent Core Qml Gui Xml Positioning Widgets Network Quick Svg OpenGL Sql Sensors WebView Bluetooth Multimedia REQUIRED)
+find_package(Qt5 COMPONENTS Concurrent Core Qml Gui Xml Positioning Widgets Network Quick Svg OpenGL Sql Sensors WebView Bluetooth MultimediaQuick REQUIRED)
 
 # PrintSupport isn't required, because it doesn't exist for ios
 # qgis will deal with it an define a public 'QT_NO_PRINTER'
@@ -174,10 +110,14 @@ find_package(Qt5 COMPONENTS PrintSupport QUIET)
 
 find_package(QGIS REQUIRED)
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+if(WITH_VCPKG)
+  find_package(PROJ)
+else()
   find_package(Proj)
+endif()
   find_package(GDAL)
 endif()
-find_package(QCA)
+find_package(Qca REQUIRED)
 find_package(QtKeychain)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
@@ -205,7 +145,6 @@ if(MSVC)
   add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
 endif()
 
-add_subdirectory(3rdparty/tessellate)
 add_subdirectory(src/core)
 add_subdirectory(src/app)
 
@@ -215,17 +154,28 @@ if (ENABLE_TESTS)
   add_subdirectory(test)
 endif()
 
-if(WITH_VCPKG)
+if(WITH_VCPKG AND NOT ANDROID)
   SET(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
-  SET(QGIS_PLUGIN_DIR "${VCPKG_BASE_DIR}/tools/qgis/plugins")
   if(MSVC)
+    SET(QGIS_PLUGIN_DIR "${VCPKG_BASE_DIR}/tools/qgis/plugins")
     file(GLOB PROVIDER_LIBS
-      "${QGIS_PLUGIN_DIR}/*provider.dll"
+      "${QGIS_PLUGIN_DIR}/*provider*.dll"
     )
+    file(GLOB AUTHMETHODS_LIBS
+      "${QGIS_PLUGIN_DIR}/*authmethod*.dll"
+    )
+    # From QGIS CMakeLists.txt
+    set(QGIS_PLUGIN_INSTALL_PREFIX "plugins")
   else()
+    SET(QGIS_PLUGIN_DIR "${VCPKG_BASE_DIR}/lib/qgis/plugins")
     file(GLOB PROVIDER_LIBS
-      "${QGIS_PLUGIN_DIR}/*provider.so"
+      "${QGIS_PLUGIN_DIR}/*provider*.so"
     )
+    file(GLOB AUTHMETHODS_LIBS
+      "${QGIS_PLUGIN_DIR}/*authmethod*.so"
+    )
+    # From QGIS CMakeLists.txt
+    set(QGIS_PLUGIN_INSTALL_PREFIX "lib${LIB_SUFFIX}/qgis/plugins")
   endif()
   add_custom_target(deploy)
   add_custom_command(TARGET deploy
@@ -233,6 +183,13 @@ if(WITH_VCPKG)
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/output/bin/qgis/plugins"
   )
   foreach(LIB ${PROVIDER_LIBS})
+    add_custom_command(TARGET deploy
+                      POST_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LIB}" "${CMAKE_BINARY_DIR}/output/bin/qgis/plugins"
+    )
+    install(FILES "${LIB}" DESTINATION "${QGIS_PLUGIN_INSTALL_PREFIX}")
+  endforeach()
+  foreach(LIB ${AUTHMETHODS_LIBS})
     add_custom_command(TARGET deploy
                       POST_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LIB}" "${CMAKE_BINARY_DIR}/output/bin/qgis/plugins"
@@ -250,13 +207,24 @@ if(WITH_VCPKG)
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${VCPKG_BASE_DIR}/share/gdal" "${CMAKE_BINARY_DIR}/output/bin/gdal"
   )
+  install(DIRECTORY "${VCPKG_BASE_DIR}/share/qgis/resources/" DESTINATION "share/qgis/resources")
+  install(DIRECTORY "${VCPKG_BASE_DIR}/share/proj4/" DESTINATION "share/proj")
+  install(DIRECTORY "${VCPKG_BASE_DIR}/share/gdal/" DESTINATION "share/gdal")
 
   if(EXISTS ${VCPKG_BASE_DIR}/plugins/mediaservice)
     add_custom_command(TARGET deploy
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${VCPKG_BASE_DIR}/plugins/mediaservice" "${CMAKE_BINARY_DIR}/output/bin/plugins/mediaservice"
     )
+    install(DIRECTORY "${VCPKG_BASE_DIR}/plugins/mediaservice/" DESTINATION "bin/plugins/mediaservice")
   endif()
 
   add_dependencies(qfield deploy)
 endif()
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  install(FILES ${CMAKE_SOURCE_DIR}/images/icons/qfield_logo.svg DESTINATION share/icons RENAME qfield.svg)
+  install(FILES ${CMAKE_SOURCE_DIR}/platform/linux/qfield.desktop DESTINATION share/qfield)
+endif()
+
+include(Package)
