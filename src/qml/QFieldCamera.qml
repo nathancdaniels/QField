@@ -1,14 +1,18 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtMultimedia 5.14
-
+import QtQuick.Layouts 1.12
+import QtWebView 1.14
+import org.qfield 1.0
 import Theme 1.0
 
 Item{
   id : cameraItem
   signal finished(string path)
   signal canceled()
-
+  
+  property var browserView: undefined
+  property string url: 'https://upload.wikimedia.org/wikipedia/commons/7/7d/Australia.jpg'
   property string currentPath
 
   anchors.fill: parent
@@ -28,58 +32,32 @@ Item{
       name: "PhotoPreview"
     }
   ]
-    Video {
-        id: cam1Stream
-        x: 49
-        y: 91
-        width: 505
-        height: 336
-        source: "http://192.168.25.1:8080/?action=stream"
-        autoPlay: true
-        opacity: 1.0
-        fillMode: Image.Stretch
-        muted: false
+Rectangle {
+    id: rect1
+    width: 300
+    height: 400
+
+      Item {
+        id: browserContainer
+        width: 300
+        height: 300
     }
-  Camera {
-    id: camera
-
-    position: Camera.BackFace
-
-    imageCapture {
-      onImageSaved: {
-        currentPath  = path
-      }
-      onImageCaptured: {
-        photoPreview.source = cam1Stream
-        cameraItem.state = "PhotoPreview"
-      }
+        Timer {
+            interval: 500
+            running: true
+            repeat: true
+            onTriggered: {         
+        if (visible && url != '') {
+            if (browserView === undefined) {
+                browserView = Qt.createQmlObject('import QtWebView 1.14; WebView { id: browserView; onLoadingChanged: if ( !loading ) { anchors.fill = parent; } }', browserContainer);
+            }
+            browserView.url = url;
+        }
+            }
+        }
     }
-  }
-
-  VideoOutput {
-    anchors.fill: parent
-
-    visible: cameraItem.state == "PhotoCapture"
-
-    focus : visible
-    source: camera
-
-    autoOrientation: true
-
-    MouseArea {
-      anchors.fill: parent
-
-      onClicked: {
-        if (camera.lockStatus == Camera.Unlocked)
-          camera.searchAndLock();
-        else
-          camera.unlock();
-      }
-    }
-
-
-    QfToolButton {
-      id: videoButtonClick
+      QfToolButton {
+      id: mainbutton
       visible: true
 
       anchors.right: parent.right
@@ -90,49 +68,13 @@ Item{
       bgcolor: "grey"
       borderColor: Theme.mainColor
 
-      onClicked: camera.imageCapture.captureToLocation(qgisProject.homePath+ '/DCIM/')
-    }
-  }
-
-  Image {
-    id: photoPreview
-
-    visible: cameraItem.state == "PhotoPreview"
-
-    anchors.fill: parent
-
-    fillMode: Image.PreserveAspectFit
-    smooth: true
-    focus: visible
-
-    QfToolButton {
-      id: buttonok
-      visible: true
-
-      anchors.right: parent.right
-      anchors.verticalCenter: parent.verticalCenter
-      bgcolor: Theme.mainColor
-      round: true
-
-      iconSource: Theme.getThemeIcon("ic_save_white_24dp")
-
-      onClicked: cameraItem.finished( currentPath )
-    }
-
-    QfToolButton {
-      id: buttonnok
-      visible: true
-
-      anchors.right: parent.right
-      anchors.top: parent.top
-      bgcolor: Theme.mainColor
-      round: true
-
-      iconSource: Theme.getThemeIcon("ic_clear_white_24dp")
       onClicked: {
-        platformUtilities.rmFile( currentPath )
-        cameraItem.state = "PhotoCapture"
+             rect1.grabToImage(function(result) {
+                           result.saveToFile(qgisProject.homePath+ '/DCIM/3.jpg');
+                       })
+      cameraItem.finished( currentPath )
+      platformUtilities.rmFile( currentPath )
+      cameraItem.state = "PhotoCapture"
       }
     }
-  }
 }
